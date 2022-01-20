@@ -1,0 +1,195 @@
+---
+title: "Exploring the BRFSS data"
+author: Yuda Andika Darmawan
+output: 
+  html_document: 
+    fig_height: 5
+    highlight: pygments
+    theme: spacelab
+---
+
+This project is made for the completion of coursera course "Introduction to Probability and Data using R" by Duke University. We do simple Exploratory Data Analysis (EDA) based on BRFSS data and develop three questions to answer.
+
+## Setup
+
+### Load packages
+
+```{r load-packages, message = FALSE}
+library(ggplot2)
+library(dplyr)
+library(scales)
+```
+
+### Load data
+
+```{r load-data}
+load("brfss2013.RData")
+```
+
+
+
+* * *
+
+## Part 1: Data
+
+The Behavioral Risk Factor Surveillance System (BRFSS) is a collaborative project between all of the states in the United States (US) and participating US territories and the Centers for Disease Control and Prevention (CDC). The BRFSS is administered and supported by CDC’s Population Health Surveillance Branch, under the Division of Population Health at the National Center for Chronic Disease Prevention and Health Promotion.   
+The survey data collected by random sampling methodology using phone-survey. Therefore, the data can not be interpreted as causal relationship, but as a correlational relationship. Since the data collected by random-sampling, the findings from the data are generalizable.
+
+* * *
+
+## Part 2: Research questions
+
+**Research question 1:**
+We would like to analyze the correlation between employment status and number of days mental health not good within a month. There are 8 categories of employment status:
+
+* Unable to work  
+* Out of work for 1 year or more  
+* out of work for less than 1 year  
+* A student  
+* A homemaker  
+* Employed for wages  
+* Self-employed  
+* Retired
+
+
+Interest: Mental health is important for everyone. There are some people based on job categories that are prone to have severe mental health. We expect that people who were unemployed had more days mental health not good. This is because unemployed people tend to insecure due to no job security and income.
+
+**Research question 2:**
+
+Research question number 2 try to examine the correlation between internet use and days mental health not good. There are several research that suggest internet use is able to increase mental health ([Lam et al., 2020](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7420689/)).   
+Interest: Internet use enables adult people to communicate with friends and colleagues, where healthy communication is important factor in determining mental health. We expect internet use reduces number of days mental health not good in a month.
+
+**Research question 3:**
+
+Research question number 3 try to examine the correlation between income distribution and gender. This is known as *gender gap*, a term widely used by economists represents income differences between male and female workers.   
+Interest: We expect there is gender pay gap, based on many reasons. First, Women are underrepresented in senior positions within firms. Second, Women are often overrepresented in low-paying jobs. Also, women often have less control on household decision and making and asset or land ownership.    
+
+There are 8 income categories in this survey dataset:
+
+* Less than $10,000
+*	Less than $15,000
+*	Less than $20,000
+*	Less than $25,000
+*	Less than $35,000
+*	Less than $50,000
+*	Less than $75,000
+*	$75,000 or more
+
+* * *
+
+## Part 3: Exploratory data analysis
+
+
+**Research quesion 1:**
+First, we would like to analyze the relationship between employment status and number of days mental health not good. There are some observations that have missing values in both variables. Therefore, we need to exclude those observations. And then we select just 2 variables, `employ1` and `menthlth`. In order to get summary statistics based on employment status, we `group_by` employment status variable, and then get average days mental health not good for each categories.
+
+```{r}
+# Grouping Data and Create A New Variable
+employ_mental <- brfss2013 %>% 
+  filter(!is.na(employ1), !is.na(menthlth)) %>%
+  select(employ1, menthlth) %>%
+  group_by(employ1) %>%
+  summarise(meanmental = mean(menthlth))
+
+```
+Finally, we plot it to get easier to analyze using ggplot2, especially barplot using `geom_bar`
+
+
+```{r, fig.height=6, fig.width=9}
+# Set Graph Color
+color = c("#421401", "#6c1d0e", "#8b3a2b", "#c27668", "#7ba0b4", "#44728c", "#235070", "#0a2d46")
+
+# Set Graph (Bar)
+ggplot(data = arrange(employ_mental, meanmental)
+       , aes(x = reorder(employ1, meanmental), y = meanmental)) + 
+  geom_bar(stat = 'identity', fill = color) +
+  labs(title="Employment Status and Number Of Days Mental Health Not Good"
+       , y ="Mean of Number of Days Mental Health Not Good"
+       , x = "Employment Status") +
+  geom_text(aes(label = round(meanmental, digits = 2)), hjust = -0.1) +
+  coord_flip() +
+  theme(panel.background = element_blank())
+```
+
+As we could see the graphics above, people who are unable to work have the highest number of days mental health not good (10.7 days). People who are out of work are also relatively have higher number of days mental health not good. Meanwhile, people who are able to work and already retired have less number of days mental health not good. This is in line with various article journals ([Buffel et al., 2015](https://equityhealthj.biomedcentral.com/articles/10.1186/s12939-015-0153-3); [Gray et al., 2019](https://www.thelancet.com/journals/lancet/article/PIIS0140-6736(19)32841-7/fulltext); [Nam et al., 2021](https://www.sciencedirect.com/science/article/abs/pii/S0165032721009058)).
+
+
+
+**Research quesion 2:**
+Secondly, we would like to analyze the role of internet use on mental health. We employ two variables, `menthlth` which represents the number of days mental health not good experienced by individuals within a month, and `internet` which is a dummy variable representing whether an individual using internet or not in the past 30 days. We filter those two variables with no missing values using `!is.na()`, and then group the data based on internet usage. Finally, we use `summarise` to calculate the mean number of days mental health not good based on internet usage.
+
+```{r}
+# Group the Data and Create a New Variable
+internet_mental <- brfss2013 %>%
+  filter(!is.na(menthlth)
+         , !is.na(internet)) %>%
+  select(menthlth, internet) %>%
+  group_by(internet) %>%
+  summarise(meanmental = mean(menthlth))
+```
+
+It is much easier to analyze the data when we plot it. We then employ `ggplot()` and `geom_bar()` to plot the data.
+
+```{r, fig.height=6, fig.width=6}
+# Set Color for Graph
+color2 = c("#6c1d0e", "#235070")
+
+# Set Graph (Bar)
+ggplot(data = internet_mental, aes(x = internet, y = meanmental)) + 
+  geom_bar(stat = 'identity', fill = color2) +
+  labs(title = "Internet Use and Number of Days Mental Health Not Good"
+       , x = 'Interne Use'
+       , y = 'Average Days Mental Health Not Good in a Month') +
+  geom_text(aes(label = round(meanmental, digits = 2)), vjust = -1) +
+  theme(panel.background = element_blank())
+```
+
+Based on the graph, there is no quite big difference number of days mental health not good between people who use internet or not in the past 30 days. But, we do see number of days mental health not good is higher for people who do not use internet. This is in line with a research from [Lam et al. (2020)](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC7420689/). Our hypothesis here is that people who use internet are easier to communicate with their friends and colleagues, where communication is an important factor for mental health.
+
+
+**Research quesion 3:**
+Thirdly, we would like to examine how income distribution differs between gender. In order to do that, we wrangle the data by grouping income categories for each gender, and then use `mutate` and `n()` to count how many male/female for each income categories and calculate its percentage. 
+
+```{r}
+# Group data and create new variable 'count' 
+income_sex <- brfss2013 %>%
+  filter(!is.na(income2)
+         , !is.na(sex)) %>%
+  select(income2, sex) %>%
+  group_by(income2, sex) %>%
+  summarize(count = n())
+
+# Create new variable 'pct', calculate the percentage male/female in each income categories
+income_sex <- income_sex %>%
+  group_by(income2) %>%
+  mutate(tot = sum(count)) %>%
+  ungroup() %>%
+  mutate(pct = count / tot)
+```
+
+Finally, we plot the data
+
+```{r, fig.height=9, fig.width=15}
+ggplot(data = income_sex, aes(x = income2, y = pct, fill = sex, label = pct)) + 
+  geom_bar(stat = 'identity', position = 'dodge') +
+  labs(title="Income Distribution and Gender"
+       , x ="Income Categories"
+       , y = "Gender Percentage") +
+  geom_text(aes(label = percent(pct)), position = position_dodge(width=0.8),
+            size=3.5, hjust = -0.3) +
+  theme(panel.background = element_blank()) +
+  scale_y_continuous(labels = scales::percent) +
+  coord_flip()
+```
+Gender gap has been widely analyzed by researchers and suggest that male get more income than women do. But, in this research question, we focus on income distribution rather than nominal wage paid difference for male/female. As the graph shown above, women's proportion decreases as income goes higher. Meanwhile, male's proportion increases as income goes higher. These findings suggest that male workers tend to get senior/managerial position than female workers. These findings also suggest that female workers are overrepresented in low paid jobs. 
+
+*******
+
+## Conclusion
+
+This project is made for the completion of coursera course "Introduction to Probability and Data using R" by Duke University. We develop three research question. First, is there association between mental health and employment status. We find that people who are in unemployment or unable to work are more tend to have more days mental not good. Second, how is the relationship between internet usage and mental health. We find that people who do not use internet in the past 30 days tend to have more days mental health not good. Third, is there relationship between income distribution and gender. We find that as income increases, the proportion of male workers also increases. Meanwhile, as income increases, the proportion of female workers decreases. Important to note that those findings cannot be interpreted as causal relationship since there is no treatment and causal inference method employed. But, they are generalizable in 50 states and people aged over 18 years. 
+
+
+
+
+
